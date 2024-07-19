@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Option Trading Strategies</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/cash.png') }}" type="image/png">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
+    <script src="/static/script.js"></script> <!-- Link to your external JavaScript file -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="popupOverlay" class="popup-overlay">
+        <div id="popup" class="popup">
+            <h2>Welcome!</h2>
+            <p>
+                This Option Trading Strategies tool was designed to enhance my understanding of option trading strategies and techniques. 
+                With this tool, users can create up to three option trading strategies and visualise their profit and loss or other risk metrics. 
+                The tool dynamically updates these visualisations as users adjust underlying market conditions, such as price, volatility, date, and interest rates.
+            </p>
+            <h3>Default Positions:</h3>
+            <ul>
+                <li>Position 1: Short Condor</li>
+                <li>Position 2: Put Ratio Spread (selling more than buying)</li>
+                <li>Position 3: Long Butterfly</li>
+            </ul>
+            <p>
+                Click the dropdown icon in the top right corner of any chart to select from a list of 11 different visualisations. 
+            </p>
+            <p>
+                All options are assumed to be European, and the underlying contract is assumed to pay no dividends.
+            </p>
+
+            <div class="button-container">
+                <button id="closePopup">Continue</button>
+            </div>
+        </div>
+      </div>
+    <div class="topBanner">
+        <img src="{{ url_for('static', filename='images/title.png') }}" alt="Black-Scholes: Volatility Spread Analysis">
+        <div class="rightSection">
+            <span class="userName">Created by: Lucas Bertovic</span>
+            <div class="rightImages">
+                <a href="https://github.com/lucasbertovic" target="_blank">
+                    <img src="{{ url_for('static', filename='images/github.png') }}" alt="GitHub Profile">
+                </a>
+                <a href="https://www.linkedin.com/in/lucas-bertovic-65248b157/?originalSubdomain=au" target="_blank">
+                    <img src="{{ url_for('static', filename='images/linkedin.png') }}" alt="LinkedIn Profile">
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="leftBanner">
+        <div class="left-menu-label">Current Underlying Price:</div>
+        <input type="number" id="currentUnderlyingPrice" class="leftMenuNumberInput" value="{{ currentUnderlyingPrice }}" step="1" dir="rtl">
+        <div class="left-menu-label">Underling Volatility (%):</div>
+        <input type="number" id="underlyingVolatility" class="leftMenuNumberInput" value="{{ underlyingVolatility }}" step="1" dir="rtl">
+        <div class="left-menu-label">Current Date:</div>
+        <input type="datetime-local" id="currentDateInput" class="leftMenuDateTimeInput" value="{{ currentDateInput }}">
+        <div class="left-menu-label">Interest Rate (%):</div>
+        <input type="number" id="interestRate" class="leftMenuNumberInput" value="{{ interestRate }}" step="1" dir="rtl">
+        <button class="greeks-button">Greeks</button>
+        <button class="position1-button">Position 1</button>
+        <button class="position2-button">Position 2</button>
+        <button class="position3-button">Position 3</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <!-- Greeks/Default content  -->
+        <div id="greeksContent" class="line-graph">
+        <div class="chart-container">
+            <div class="dropdown" id="dropdown1">
+                <button class="dropdown-toggle">▼</button>
+                <ul class="dropdown-menu">
+                    <li><a href="#" data-value="Profit/Loss">Profit/Loss</a></li>
+                    <li><a href="#" data-value="Delta">Delta</a></li>
+                    <li><a href="#" data-value="Gamma">Gamma</a></li>
+                    <li><a href="#" data-value="Vega">Vega</a></li>
+                    <li><a href="#" data-value="Theta">Theta</a></li>
+                    <li><a href="#" data-value="Rho">Rho</a></li>
+                    <li><a href="#" data-value="Vanna">Vanna</a></li>
+                    <li><a href="#" data-value="Charm">Charm</a></li>
+                    <li><a href="#" data-value="Colour">Colour</a></li>
+                    <li><a href="#" data-value="Vomma">Vomma</a></li>
+                    <li><a href="#" data-value="Zomma">Zomma</a></li>
+                </ul>
+            </div>
+            <canvas id="lineChart1"></canvas>
+        </div>
+        <div class="chart-container">
+            <div class="dropdown" id="dropdown2">
+                <button class="dropdown-toggle">▼</button>
+                <ul class="dropdown-menu">
+                    <li><a href="#" data-value="Profit/Loss">Profit/Loss</a></li>
+                    <li><a href="#" data-value="Delta">Delta</a></li>
+                    <li><a href="#" data-value="Gamma">Gamma</a></li>
+                    <li><a href="#" data-value="Vega">Vega</a></li>
+                    <li><a href="#" data-value="Theta">Theta</a></li>
+                    <li><a href="#" data-value="Rho">Rho</a></li>
+                    <li><a href="#" data-value="Vanna">Vanna</a></li>
+                    <li><a href="#" data-value="Charm">Charm</a></li>
+                    <li><a href="#" data-value="Colour">Colour</a></li>
+                    <li><a href="#" data-value="Vomma">Vomma</a></li>
+                    <li><a href="#" data-value="Zomma">Zomma</a></li>
+                </ul>
+            </div>
+            <canvas id="lineChart2"></canvas>
+        </div>
+        <div class="chart-container">
+            <div class="dropdown" id="dropdown3">
+                <button class="dropdown-toggle">▼</button>
+                <ul class="dropdown-menu">
+                    <li><a href="#" data-value="Profit/Loss">Profit/Loss</a></li>
+                    <li><a href="#" data-value="Delta">Delta</a></li>
+                    <li><a href="#" data-value="Gamma">Gamma</a></li>
+                    <li><a href="#" data-value="Vega">Vega</a></li>
+                    <li><a href="#" data-value="Theta">Theta</a></li>
+                    <li><a href="#" data-value="Rho">Rho</a></li>
+                    <li><a href="#" data-value="Vanna">Vanna</a></li>
+                    <li><a href="#" data-value="Charm">Charm</a></li>
+                    <li><a href="#" data-value="Colour">Colour</a></li>
+                    <li><a href="#" data-value="Vomma">Vomma</a></li>
+                    <li><a href="#" data-value="Zomma">Zomma</a></li>
+                </ul>
+            </div>
+            <canvas id="lineChart3"></canvas>
+        </div>
+        <div class="chart-container">
+            <div class="dropdown" id="dropdown4">
+                <button class="dropdown-toggle">▼</button>
+                <ul class="dropdown-menu">
+                    <li><a href="#" data-value="Profit/Loss">Profit/Loss</a></li>
+                    <li><a href="#" data-value="Delta">Delta</a></li>
+                    <li><a href="#" data-value="Gamma">Gamma</a></li>
+                    <li><a href="#" data-value="Vega">Vega</a></li>
+                    <li><a href="#" data-value="Theta">Theta</a></li>
+                    <li><a href="#" data-value="Rho">Rho</a></li>
+                    <li><a href="#" data-value="Vanna">Vanna</a></li>
+                    <li><a href="#" data-value="Charm">Charm</a></li>
+                    <li><a href="#" data-value="Colour">Colour</a></li>
+                    <li><a href="#" data-value="Vomma">Vomma</a></li>
+                    <li><a href="#" data-value="Zomma">Zomma</a></li>
+                </ul>
+            </div>
+            <canvas id="lineChart4"></canvas>
+        </div>
+    </div>
+        
+        <!-- Common container for position content -->
+        <div id="positionContainer" style="display: none; flex-direction: column;">
+            <div class="position-banner">
+                <div class="banner-input-group">
+                    <label for="expirationDatetime">Expiration Datetime:</label>
+                    <input type="datetime-local" id="expirationDatetime" value="{{ expirationDateTime }}">
+                </div>
+                <div class="banner-input-group">
+                    <label for="optionType">Option Type:</label>
+                    <select id="optionType">
+                        <option value="Call">Call</option>
+                        <option value="Put">Put</option>
+                    </select>
+                </div>
+                <div class="banner-input-group">
+                    <label for="optionPositionSelection">Position:</label>
+                    <select id="optionPositionSelection">
+                        <option value="Long">Long</option>
+                        <option value="Short">Short</option>
+                    </select>
+                </div>
+                <div class="banner-input-group">
+                    <label for="quantity">Quantity:</label>
+                    <input type="number" id="quantity" value="{{ quantity }}" min="1" step="1" dir="rtl">
+                </div>
+                <div class="banner-input-group">
+                    <label for="strikePrice">Strike Price:</label>
+                    <input type="number" id="strikePrice" value="{{ strikePrice }}" min="1" step="1" dir="rtl">
+                </div>
+                <div class="banner-input-group">
+                    <label for="theoreticalValue">Theoretical Value:</label>
+                    <input type="number" id="theoreticalValue" dir="rtl" value="{{ theoreticalValue }}" readonly>
+                </div>
+                <div class="banner-input-group">
+                    <label for="transactionPrice">Transaction Price:</label>
+                    <input type="number" id="transactionPrice"  min="1" step="1" dir="rtl">
+                </div>
+                <div class="position-button-group">
+                    <button id="addToPositionButton">Add to Position</button>
+                    <button id="clearPositionButton">Clear Position</button>
+                </div>
+            </div>
+            
+            <!-- Content placeholders for dynamic content -->
+            <div id="position1Content" style="display: none;">
+                <div class="position-table-container">
+                <!-- Table for additional data -->
+                    <div class="position-table">
+                        <table>
+                            <thead>
+                                <tr class="head">
+                                    <th>Strike Price</th>
+                                    <th>Type</th>
+                                    <th>Position</th>
+                                    <th>Expiration Date</th>
+                                    <th>Implied Volatility</th>
+                                    <th>Price (Unit)</th>
+                                    <th>Quantity</th>
+                                    <th>Total Premium</th>
+                                    <th>Theoretical Value</th>
+                                    <th>Edge</th>
+                                    <th>Delta</th>
+                                    <th>Gamma</th>
+                                    <th>Theta</th>
+                                    <th>Vega</th>
+                                    <th>Rho</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="footer-row" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 2rem; color: #ccc; background-color: #16191d; border: 1px solid white; text-align: center; font-weight: bold;">
+                                    <td colspan="6" style="text-align: center;">Totals:</td>
+                                    <td class= "p1totalQuantity" style="text-align: right;">-</td>
+                                    <td class= "p1totalPrice" style="text-align: right;">-</td>
+                                    <td class= "p1totalTheoreticalValue" style="text-align: right;">-</td>
+                                    <td class= "p1totalIntrinsicValue" style="text-align: right;">-</td>
+                                    <td class= "p1totalDelta" style="text-align: right;">-</td>
+                                    <td class= "p1totalGamma" style="text-align: right;">-</td>
+                                    <td class= "p1totalTheta" style="text-align: right;">-</td>
+                                    <td class= "p1totalVega" style="text-align: right;">-</td>
+                                    <td class= "p1totalRho" style="text-align: right;">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div id="position2Content" style="display: none;">
+                <div class="position-table-container">
+                    <!-- Table for additional data -->
+                    <div class="position-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Strike Price</th>
+                                    <th>Type</th>
+                                    <th>Position</th>
+                                    <th>Expiration Date</th>
+                                    <th>Implied Volatility</th>
+                                    <th>Price (Unit)</th>
+                                    <th>Quantity</th>
+                                    <th>Total Premium</th>
+                                    <th>Theoretical Value</th>
+                                    <th>Edge</th>
+                                    <th>Delta</th>
+                                    <th>Gamma</th>
+                                    <th>Theta</th>
+                                    <th>Vega</th>
+                                    <th>Rho</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="footer-row" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 2rem; color: #ccc; background-color: #16191d; border: 1px solid white; text-align: center; font-weight: bold;">
+                                    <td colspan="6" style="text-align: center;">Totals:</td>
+                                    <td class= "p2totalQuantity" style="text-align: right;">-</td>
+                                    <td class= "p2totalPrice" style="text-align: right;">-</td>
+                                    <td class= "p2totalTheoreticalValue" style="text-align: right;">-</td>
+                                    <td class= "p2totalIntrinsicValue" style="text-align: right;">-</td>
+                                    <td class= "p2totalDelta" style="text-align: right;">-</td>
+                                    <td class= "p2totalGamma" style="text-align: right;">-</td>
+                                    <td class= "p2totalTheta" style="text-align: right;">-</td>
+                                    <td class= "p2totalVega" style="text-align: right;">-</td>
+                                    <td class= "p2totalRho" style="text-align: right;">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div id="position3Content" style="display: none;">
+                <div class="position-table-container">
+                    <!-- Table for additional data -->
+                    <div class="position-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Strike Price</th>
+                                    <th>Type</th>
+                                    <th>Position</th>
+                                    <th>Expiration Date</th>
+                                    <th>Implied Volatility</th>
+                                    <th>Price (Unit)</th>
+                                    <th>Quantity</th>
+                                    <th>Total Premium</th>
+                                    <th>Theoretical Value</th>
+                                    <th>Edge</th>
+                                    <th>Delta</th>
+                                    <th>Gamma</th>
+                                    <th>Theta</th>
+                                    <th>Vega</th>
+                                    <th>Rho</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="footer-row" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 2rem; color: #ccc; background-color: #16191d; border: 1px solid white; text-align: center; font-weight: bold;">
+                                    <td colspan="6" style="text-align: center;">Totals:</td>
+                                    <td class= "p3totalQuantity" style="text-align: right;">-</td>
+                                    <td class= "p3totalPrice" style="text-align: right;">-</td>
+                                    <td class= "p3totalTheoreticalValue" style="text-align: right;">-</td>
+                                    <td class= "p3totalIntrinsicValue" style="text-align: right;">-</td>
+                                    <td class= "p3totalDelta" style="text-align: right;">-</td>
+                                    <td class= "p3totalGamma" style="text-align: right;">-</td>
+                                    <td class= "p3totalTheta" style="text-align: right;">-</td>
+                                    <td class= "p3totalVega" style="text-align: right;">-</td>
+                                    <td class= "p3totalRho" style="text-align: right;">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+
+
+
+</body>
+</html>

@@ -1,0 +1,464 @@
+body {
+    background-color: #1f232a;
+    margin: 0;
+    padding: 0;
+}
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.popup {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1f232a;
+    color: white;
+    padding: 40px 40px 20px;
+    border-radius: 8px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), 0 0 10px rgba(255, 255, 255, 0.1) inset;
+    width: 65%;
+    max-width: 800px;
+    text-align: left; 
+    position: relative;
+}
+
+.popup h2 {
+    margin-top: 0;
+    text-align: center; /* Center align the header */
+}
+
+.popup p,
+.popup ul,
+.popup li,
+.popup h3 {
+    text-align: left; /* Left align paragraphs, lists, and list items */
+}
+
+.button-container {
+    display: flex;
+    justify-content: center; /* Center the button horizontally */
+    margin-top: 20px; /* Add margin if needed */
+}
+
+.popup button {
+    display: inline-block; /* Ensure the button is inline-block */
+    width: 125px; /* Adjust button width as needed */
+    height: 35px;
+    padding: 5px;
+    background-color: #3a3f4b; /* Easier on the eyes background color */
+    color: white;
+    border: 2px solid #16191d; /* Bright green border color */
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), inset 0 1px rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+    text-align: center; /* Center align text inside the button */
+}
+
+.popup button:hover {
+    background-color: #4a4f58; /* Slightly darker background on hover */
+}
+
+.popup button:active {
+    background-color: #2a2f38; /* Even darker background on click */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px rgba(255, 255, 255, 0.3); /* Reduced shadow on click */
+    transform: translateY(2px); /* Push button down on click */
+}
+
+.topBanner {
+    width: 100%;
+    height: 6vh;
+    background-color: #2c313c;
+    position: fixed;
+    top: 0;
+    left: 0;    
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    display: flex;
+    align-items: center; /* Vertically center items */
+    justify-content: space-between; /* Distribute space between items */
+    padding-left: 10px; /* Add some padding to the left if needed */
+    padding-right: 10px; /* Add some padding to the right if needed */
+}
+
+.topBanner img {
+    max-height: 80%; /* Ensure the images fit within the banner height */
+    height: auto; /* Adjust the height of the image as needed */
+    width: auto; /* Maintain aspect ratio */
+}
+
+.rightSection {
+    display: flex;
+    align-items: center;
+    margin-right: 25px; 
+}
+
+.userName {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: white; /* Text color */
+    margin-right: 10px; /* Space between the text and the images */
+    font-size: 1.5vh; /* Adjust font size as needed */
+}
+
+.rightImages {
+    display: flex;
+    align-items: center; /* Vertically center items within the right container */
+}
+
+.rightImages img {
+    margin-left: 10px; /* Add some space between the right images */
+    max-height: 3vh; /* Explicitly set the maximum height */
+    max-width: 3vh; /* Explicitly set the maximum width */
+    height: auto; /* Adjust the height of the image as needed */
+    width: auto; /* Maintain aspect ratio */
+}
+.leftBanner {
+    width: 11%;
+    height: 100vh;
+    background-color: #16191d;
+    position: fixed;
+    top: 6vh;
+    padding-left: 10px;
+    padding-top: 10px;
+    box-sizing: border-box;
+}
+.left-menu-label {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* Specify Segoe UI or fallback fonts */
+    font-size: 0.9rem;
+    color: #ccc; /* Light gray font color */
+    display: block; /* Ensure block level element for padding to work */
+    margin-bottom: 5px; /* Add bottom margin */
+}
+.leftMenuNumberInput {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* Specify Segoe UI or fallback fonts */
+    width: 90%;
+    height: 27px;
+    font-size: 0.9rem;
+    text-align: right;
+    border: 1px solid #000; /* Thin black border */
+    border-radius: 5px; /* Rounded corners */
+    background-color: #343a40; /* Background color */
+    color: #ccc; /* Font color */
+    margin-bottom: 15px; 
+    
+}
+.leftMenuDateTimeInput {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* Specify Segoe UI or fallback fonts */
+    width: 95%; /* Adjusted width to make it narrower */
+    padding: 3px;
+    height: 27px;
+    font-size: 0.7rem;
+    text-align: right; /* Align text to the right */
+    border: 1px solid #000; /* Thin black border */
+    border-radius: 5px; /* Rounded corners */
+    background-color: #343a40; /* Background color */
+    color: #ccc; /* Font color */
+    box-sizing: border-box; /* Ensure padding and border are included in width calculation */
+    padding-left: 5px; 
+    margin-bottom: 15px;  /* Add padding to the left */
+}
+.position1-button, .position2-button,.position3-button ,.greeks-button{
+    padding: 10px 20px;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    width: 92%; /* Adjusted width to make it narrower */
+    height: 30px;
+    background-color: #2c313c;
+    color: white;
+    line-height: 0px; /* Vertical center alignment */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+    margin-bottom: 10px;
+    text-align: center;
+    position: relative; /* Ensure relative positioning for pseudo-element */
+}
+.position1-button:hover, .position2-button:hover, .position3-button:hover, .greeks-button:hover {
+    background-color: #1e88e5;
+}
+.position1-button::after {
+    content: ''; /* Required for pseudo-element */
+    display: block;
+    width: 10px; /* Size of the circle */
+    height: 10px; /* Size of the circle */
+    border-radius: 50%; /* Ensures the shape is a circle */
+    background-color: rgb(214, 214, 214); /* Circle color */
+    border: 3px solid rgb(255, 28, 28); /* Red ring color */
+    position: absolute; /* Position relative to the button */
+    top: 50%; /* Vertically center the circle */
+    right: 10px; /* Adjust distance from right side */
+    transform: translateY(-50%); /* Adjusts vertical centering */
+}
+.position2-button::after {
+    content: ''; /* Required for pseudo-element */
+    display: block;
+    width: 10px; /* Size of the circle */
+    height: 10px; /* Size of the circle */
+    border-radius: 50%; /* Ensures the shape is a circle */
+    background-color: rgb(214, 214, 214); /* Circle color */
+    border: 3px solid rgb(21, 124, 21); /* Red ring color */
+    position: absolute; /* Position relative to the button */
+    top: 50%; /* Vertically center the circle */
+    right: 10px; /* Adjust distance from right side */
+    transform: translateY(-50%); /* Adjusts vertical centering */
+}
+.position3-button::after {
+    content: ''; /* Required for pseudo-element */
+    display: block;
+    width: 10px; /* Size of the circle */
+    height: 10px; /* Size of the circle */
+    border-radius: 50%; /* Ensures the shape is a circle */
+    background-color: rgb(214, 214, 214); /* Circle color */
+    border: 3px solid  rgb(39, 151, 255); /* Red ring color */
+    position: absolute; /* Position relative to the button */
+    top: 50%; /* Vertically center the circle */
+    right: 10px; /* Adjust distance from right side */
+    transform: translateY(-50%); /* Adjusts vertical centering */
+}
+.main-content {
+    position: absolute;
+    left: 11%; /* Adjusted left position to match the width of the left menu */
+    top: 6vh; /* Adjusted top position */
+    right: 0; /* Aligns the right edge with the right edge of the viewport */
+    height: 94vh; /* Adjusted height to fit within the viewport */
+    background-color: #1f232a; /* Default background color */
+    color: white;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column; /* Use column direction to allow content to stack vertically */
+}
+.line-graph {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); 
+    grid-template-rows: repeat(2, 1fr); 
+    width: 100%; 
+    height: 100%; 
+    box-sizing: border-box;
+}
+canvas {
+    width: 100%; /* Adjust to 50% of the parent */
+    height: 100%; /* Adjust to 50% of the parent */
+}
+.chart-container {
+    flex: 1 1 50%;
+    box-sizing: border-box;
+    position: relative;
+}
+.chart-container:nth-child(1),
+.chart-container:nth-child(2) {
+    border-bottom: 3px solid #16191d;
+}
+.chart-container:nth-child(1),
+.chart-container:nth-child(3) {
+    border-right: 3px solid #16191d;
+}
+#positionContainer {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    background-color: #1f232a; /* Helps visualize the container */
+    align-items: center;  
+    justify-content: flex-start;  
+    box-sizing: border-box;
+    padding-left: 5px;
+    padding-right: 5px;
+    overflow: hidden; /* Prevent scrolling within the position container */
+    max-height: calc(100vh - 6vh); /* Ensure it fits within the remaining height */
+}
+.position-banner {
+    display: flex;
+    flex-direction: row;  
+    align-items: center;  
+    justify-content: space-around;  
+    width: 100%;
+    background-color: #2c313c;
+    padding: 10px;
+    box-sizing: border-box;
+
+}
+.banner-input-group {
+    display: flex;
+    flex-direction: column;  
+    align-items: left;  
+}
+
+.banner-input-group label {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 0.9rem;
+    color: white;
+    margin-bottom: 5px;
+}
+.banner-input-group input[type="datetime-local"] {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 0.8rem;
+    width: 90%;
+    padding: 5px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #3a3f4b;
+    color: #ffffff;
+    box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.3), 
+                inset -1px -1px 3px rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    height: 15px; /* Set a common height for all inputs */
+}
+.banner-input-group select {
+    width: 100px;
+    padding-left: 4px;
+    height: 25px;
+    vertical-align: middle; 
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #3a3f4b;
+    color: #ffffff;
+    box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.3), 
+                inset -1px -1px 3px rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    
+    
+}
+.banner-input-group input[type="number"] {
+    width: 100px;
+    padding: 5px;
+    height: 16px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #3a3f4b;
+    color: #ffffff;
+    box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.3), 
+                inset -1px -1px 3px rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+.banner-input-group input[type="datetime-local"]:focus,
+.banner-input-group select:focus,
+.banner-input-group input[type="number"]:focus {
+    border-color: #777;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+    outline: none;
+}
+.position-button-group {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-left: 10px; /* Adjust margin as needed */
+    margin-top: 14px;
+}
+.position-button-group button {
+    width: 125px; /* Adjust button width as needed */
+    height: 35px;
+    margin: 5px 5px; /* Add vertical spacing between buttons */
+    padding: 5px;
+    background-color: #3a3f4b; /* Easier on the eyes background color */
+    color: white;
+    border: 2px solid rgb(255, 28, 28); /* Bright green border color */
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), inset 0 1px rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+.position-button-group button:hover {
+    background-color: #4a4f58; /* Slightly darker background on hover */
+}
+.position-button-group button:active {
+    background-color: #2a2f38; /* Even darker background on click */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px rgba(255, 255, 255, 0.3); /* Reduced shadow on click */
+    transform: translateY(2px); /* Push button down on click */
+}
+/* Add this new class */
+.position-table-container {
+    width: 100%;
+    margin-top: 10px; /* Add margin to separate the table from the element above */
+    overflow-y: auto; /* Enable vertical scrolling */
+    max-height: calc(100vh - 20vh); /* Adjust the height as needed */
+}
+
+/* Ensure the table styling is included under this class */
+.position-table {
+    width: 100%;
+    border-collapse: collapse; /* Ensure proper table layout */
+}
+.position-table table {
+    width: 100%;
+    border-collapse: collapse;
+    max-height: calc(100vh - 20vh); /* Adjust based on available space */
+    overflow-y: auto; /* Add vertical scroll bar when content exceeds height */
+}
+.position-table th {
+    top: 0; /* Stick the header to the top */
+    background-color: #16191d; /* Background color for the sticky header */
+    z-index: 1; /* Ensure headers are above table rows */
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 0.9rem;
+    color: #ccc;
+    border: 1px solid white;
+    padding: 8px;
+    text-align: center;
+}
+.position-table td {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 0.8rem;
+    border: 1px solid white;
+    padding: 8px;
+    text-align: left;
+}
+.position-table tr:hover {
+    background-color: #16191d;
+}
+.dropdown {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.dropdown-toggle {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #333;
+    color: white;
+    border: 1px solid #16191d;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 150px; /* Adjust the width as needed */
+    z-index: 20; /* Ensure dropdown menu is above other elements */
+    max-height: 300px; /* Maximum height for the dropdown menu */
+    overflow-y: auto; /* Add vertical scroll bar when content exceeds max height */
+}
+
+.dropdown-menu li {
+    margin: 0;
+}
+
+.dropdown-menu li a {
+    display: block;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: white;
+    font-size: 11px; /* Adjust font size here */
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    text-align: right; 
+}
+
+.dropdown-menu li a:hover {
+    background-color: #555;
+}
