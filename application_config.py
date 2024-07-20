@@ -70,8 +70,7 @@ class PositionOption:
         if T <= 0:
             if update == True:
                 self.delta = 0
-            else:
-                return None
+            return None
         
 
         d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
@@ -101,8 +100,7 @@ class PositionOption:
         if T <= 0:
             if update == True:
                 self.gamma = 0
-            else:
-                return None
+            return None
         
         d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
         gamma = norm.pdf(d1) / (S * sigma * math.sqrt(T))
@@ -124,8 +122,7 @@ class PositionOption:
         if T <= 0:
             if update == True:
                 self.vega = 0
-            else:
-                return None
+            return None
 
         d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
         
@@ -148,8 +145,7 @@ class PositionOption:
         if T <= 0:
             if update == True:
                 self.theta = 0
-            else:
-                return None
+            return None
 
         d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
         d2 = d1 - sigma * math.sqrt(T)
@@ -181,8 +177,7 @@ class PositionOption:
         if T <= 0:
             if update == True:
                 self.rho = 0
-            else:
-                return None
+            return None
 
         d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
         d2 = d1 - sigma * math.sqrt(T)
@@ -211,8 +206,7 @@ class PositionOption:
         if T <= 0:
             if update == True:
                 self.vanna = 0
-            else:
-                return None
+            return None
         
         d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
 
@@ -235,8 +229,8 @@ class PositionOption:
         if T <= 0:
             if update == True:
                 self.charm = 0
-            else:
-                return None
+
+            return None
 
         d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
         d2 = d1 - sigma * math.sqrt(T)
@@ -265,8 +259,8 @@ class PositionOption:
         if T <= 0:
             if update == True:
                 self.colour = 0
-            else:
-                return None
+
+            return None
 
         d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
         d2 = d1 - sigma * math.sqrt(T)
@@ -292,8 +286,8 @@ class PositionOption:
         if T <= 0:
             if update == True:
                 self.vomma = 0
-            else:
-                return None
+
+            return None
             
         d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
         d2 = d1 - sigma * math.sqrt(T)
@@ -808,6 +802,7 @@ class ApplicationConfig:
         elif position == 'position3':
             pos = self.position3
         for o in pos:
+            value = None
             if greek == 'Delta':
                 value = self.deltaPrice(o, price)
             elif greek == 'Gamma':
@@ -828,6 +823,7 @@ class ApplicationConfig:
                 value = self.vommaPrice(o, price)
             elif greek == 'Zomma':
                 value = self.zommaPrice(o, price)
+
             if value is not None:
                 positionTotal += round(value* o.quantity[0],4)
         return positionTotal

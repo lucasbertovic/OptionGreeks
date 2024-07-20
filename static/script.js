@@ -11,8 +11,8 @@ $(document).ready(function() {
         $('body').removeClass('popup-active');
     });
 
-    //var socket = io('https://lucasbertovic-options-77be83cd2d74.herokuapp.com');
-    var socket = io();
+    var socket = io('https://lucasbertovic-options-77be83cd2d74.herokuapp.com');
+    //var socket = io();
     $('#addToPositionButton').on('click', function() {
         // Get the value of the transactionPrice input
         var transactionPrice = $('#transactionPrice').val();
