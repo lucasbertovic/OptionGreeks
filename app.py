@@ -21,8 +21,6 @@ initial_values = {
     'strikePrice': 100,
 }
 
-
-
 @app.route('/')
 def home():
     # Reset to initial values
@@ -56,9 +54,9 @@ def home():
     config.updatePositionValues()
     config.chart_data = {
         0: config.valuePriceGraph(),
-        1: config.deltaPriceGraph(),
-        2: config.gammaPriceGraph(),
-        3: config.vegaPriceGraph()
+        1: config.greekPriceGraph('Delta'),
+        2: config.greekPriceGraph('Gamma'),
+        3: config.greekPriceGraph('Vega')
     }
     config.chart1 = 'Profit/Loss'
     config.chart2 = 'Delta'
@@ -184,7 +182,6 @@ def handle_button_click(data):
         config.chart3 = data['value']
     if data['dropdownId'] == 'dropdown4':
         config.chart4 = data['value']
-
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)

@@ -20,51 +20,21 @@ class PositionOption:
         self.updateIntrinsicValue()
         self.delta = None
         self.gamma = None
-        self.calculateImpliedVolatility()
         self.updateDelta()
         self.updateGamma()
         self.updateTheta()
         self.updateVega()
         self.updateRho()
+        self.updateVanna()
+        self.updateCharm()
+        self.updateColour()
+        self.updateVomma()
+        self.updateZomma()
+        self.calculateImpliedVolatility()
 
     def updateT(self):
         self.t = self.applicationConfig.years_between_dates(self.applicationConfig.currentDateInput, self.expirationDate[0])
     
-    def calculateImpliedVolatility(self, tolerance=1e-6, max_iterations=100):
-        if self.t <= 0:
-            self.impliedVolatility ='0%'
-            return
-        S = self.applicationConfig.currentUnderlyingPrice
-        K = self.strikePrice[0]
-        r = self.applicationConfig.interestRate/100
-        sigma = self.applicationConfig.underlyingVolatility/100
-        T = self.t
-        """
-        Calculate the implied volatility of a European option using the Newton-Raphson method.
-        """
-        # Initial guess
-        sigma = 0.2
-        
-        for i in range(max_iterations):
-            price = self.applicationConfig.black_scholes(S, K, T, r, sigma, self.optionType[0])
-            diff = price - abs(self.premium)
-            if abs(diff) < tolerance:
-                self.impliedVolatility = str(round(sigma*100,2)) + '%'
-                return
-            
-            vega_value = self.vega(S, K, T, r, sigma)
-            if vega_value == 0:
-                self.impliedVolatility ='0%'
-                return
-            
-            sigma -= diff / vega_value
-
-        raise ValueError("Failed to converge to a solution within the maximum number of iterations.")
-    
-    def vega(self, S, K, T, r, sigma):
-        d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-        return S * norm.pdf(d1) * math.sqrt(T)
-
     def updateIntrinsicValue(self):
         self.intrinsicValue = self.applicationConfig.currentUnderlyingPrice - self.strikePrice[0]
         if 'Call' in self.optionType:
@@ -96,127 +66,343 @@ class PositionOption:
             self.theoreticalValue = -theoreticalValue
             self.edge =  round(abs(self.premium) + self.theoreticalValue,2)
 
-    def updateDelta(self):
-        if self.t <= 0:
-            self.delta = 0
-            return
-        d1 = (math.log(self.applicationConfig.currentUnderlyingPrice /  self.strikePrice[0]) + ((self.applicationConfig.interestRate/100) + 0.5 * (self.applicationConfig.underlyingVolatility/100)**2) * self.t) / ((self.applicationConfig.underlyingVolatility/100) * math.sqrt(self.t))
+    def calculateDelta(self, S, K, T, r, sigma, option_type, position_type,update: bool):
+        if T <= 0:
+            if update == True:
+                self.delta = 0
+            else:
+                return None
+        
 
-        if 'Call' in self.optionType:
+        d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+
+        if option_type == 'Call':
             delta = norm.cdf(d1)
-        elif 'Put' in self.optionType:
+        elif option_type == 'Put':
             delta = norm.cdf(d1) - 1
         else:
             raise ValueError("Invalid option type. Use 'call' or 'put'.")
         
-        if  'Short' in self.longShort:
-            delta = -delta
-        elif  'Long' not in self.longShort:
+
+        if position_type == 'Long':
+            if update == True:
+                self.delta = round(delta,4)
+            else:
+                return round(delta*100,4)
+        elif position_type == 'Short':
+            if update == True:
+                self.delta = round(-delta,4)
+            else:
+                return round(-delta*100,4)
+        else:
             raise ValueError("Invalid position type. Use 'long' or 'short'.")
-        
-        self.delta = round(delta,4)
     
-    def updateGamma(self):
-        if self.t <= 0:
-            self.gamma = 0
-            return
-
-        d1 = (math.log(self.applicationConfig.currentUnderlyingPrice /  self.strikePrice[0]) + ((self.applicationConfig.interestRate/100) + 0.5 * (self.applicationConfig.underlyingVolatility/100)**2) * self.t) / ((self.applicationConfig.underlyingVolatility/100) * math.sqrt(self.t))
-        pdf_d1 = norm.pdf(d1)
+    def calculateGamma(self,S, K, T, r, sigma, position_type, update: bool):
+        if T <= 0:
+            if update == True:
+                self.gamma = 0
+            else:
+                return None
         
-        gamma = pdf_d1 / (self.applicationConfig.currentUnderlyingPrice * (self.applicationConfig.underlyingVolatility/100) * math.sqrt(self.t))
-
-        if  'Short' in self.longShort:
-            gamma = -gamma
+        d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+        gamma = norm.pdf(d1) / (S * sigma * math.sqrt(T))
         
+        if position_type == 'Long':
+            if update == True:
+                self.gamma = round(gamma,4)
+            else:
+                return round(gamma*100,4)
+        elif position_type == 'Short':
+            if update == True:
+                self.gamma = round(-gamma,4)
+            else:
+                return round(-gamma*100,4)
+        else:
+            raise ValueError("Invalid position type. Use 'long' or 'short'.")
 
-        self.gamma = round(gamma,4)
+    def calculateVega(self,S, K, T, r, sigma, position_type, update:bool):
+        if T <= 0:
+            if update == True:
+                self.vega = 0
+            else:
+                return None
 
-    def updateTheta(self):
-        if self.t <= 0:
-            self.theta = 0
-            return
-        S = self.applicationConfig.currentUnderlyingPrice
-        K = self.strikePrice[0]
-        r = self.applicationConfig.interestRate/100
-        sigma = self.applicationConfig.underlyingVolatility/100
-        T = self.t
-        d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
+        d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+        
+        vega = S * norm.pdf(d1) * math.sqrt(T)
+        
+        if position_type == 'Long':
+            if update == True:
+                self.vega = round(vega/100,4)
+            else:
+                return round(vega,4)
+        elif position_type == 'Short':
+            if update == True:
+                self.vega = round(-vega/100,4)
+            else:
+                return round(-vega,4)
+        else:
+            raise ValueError("Invalid position type. Use 'long' or 'short'.")
+
+    def calculateTheta(self, S, K, T, r, sigma, option_type, position_type, update:bool):
+        if T <= 0:
+            if update == True:
+                self.theta = 0
+            else:
+                return None
+
+        d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
         d2 = d1 - sigma * math.sqrt(T)
         
-
-        pdf_d1 = norm.pdf(d1)
+        common_factor = (S * norm.pdf(d1) * sigma) / (2 * math.sqrt(T))
         
-
-        cdf_d1 = norm.cdf(d1)
-        cdf_d2 = norm.cdf(d2)
-        
-
-        term1 = -(S * pdf_d1 * sigma) / (2 * math.sqrt(T))
-        
-        if 'Call' in self.optionType:
-            term2 = r * K * math.exp(-r * T) * cdf_d2
-            theta = term1 - term2
-        elif 'Put' in self.optionType:
-            term2 = r * K * math.exp(-r * T) * norm.cdf(-d2)
-            theta = term1 + term2
+        if option_type == 'Call':
+            theta = -common_factor - r * K * math.exp(-r * T) * norm.cdf(d2)
+        elif option_type == 'Put':
+            theta = -common_factor + r * K * math.exp(-r * T) * norm.cdf(-d2)
         else:
             raise ValueError("Invalid option type. Use 'call' or 'put'.")
         
-        if  'Short' in self.longShort:
-            theta = -theta
+
+        if position_type == 'Long':
+            if update == True:
+                self.theta = round(theta/365,4) 
+            else:
+                return round(theta*100/365,4)
+        elif position_type == 'Short':
+            if update == True:
+                self.theta = round(-theta / 365, 4)
+            else:
+                return round(-theta*100/365,4)
+        else:
+            raise ValueError("Invalid position type. Use 'long' or 'short'.") 
+
+    def calculateRho(self, S, K, T, r, sigma, option_type, position_type, update:bool):
+        if T <= 0:
+            if update == True:
+                self.rho = 0
+            else:
+                return None
+
+        d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+        d2 = d1 - sigma * math.sqrt(T)
+
+        if option_type == 'Call':
+            rho = K * T * math.exp(-r * T) * norm.cdf(d2)
+        elif option_type == 'Put':
+            rho = -K * T * math.exp(-r * T) * norm.cdf(-d2)
+        else:
+            raise ValueError("Invalid option type. Use 'call' or 'put'.")
         
-        self.theta = round(theta/365,4)
+        if position_type == 'Long':
+            if update == True:
+                self.rho = round( rho / 100, 4)  
+            else:
+                return round(rho, 4)
+        elif position_type == 'Short':
+            if update == True:
+                self.rho = round(-rho / 100, 4)
+            else:
+                return round(-rho, 4)  
+        else:
+            raise ValueError("Invalid position type. Use 'long' or 'short'.")
+
+    def calculateVanna(self, S, K, T, r, sigma, position_type, update:bool):
+        if T <= 0:
+            if update == True:
+                self.vanna = 0
+            else:
+                return None
+        
+        d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+
+        vanna = (norm.pdf(d1) * (K - S * math.exp(-r * T))) / (S * sigma)
+
+        if position_type == 'Long':
+            if update == True:
+                self.vanna = round(vanna,4)
+            else:
+                return round(vanna *100  ,4)
+        elif position_type == 'Short':
+            if update == True:
+                self.vanna = round(-vanna  ,4)
+            else:
+                return round(-vanna*100,4)
+        else:
+            raise ValueError("Invalid position type. Use 'long' or 'short'.")
+
+    def calculateCharm(self, S, K, T, r, sigma, option_type, position_type, update:bool):
+        if T <= 0:
+            if update == True:
+                self.charm = 0
+            else:
+                return None
+
+        d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+        d2 = d1 - sigma * math.sqrt(T)
+        
+        if option_type == 'Call':
+            charm = -norm.pdf(d1) * (2 * r * T - d2 * sigma * math.sqrt(T)) / (2 * T * sigma * math.sqrt(T))
+        elif option_type == 'Put':
+            charm = -norm.pdf(d1) * (2 * r * T + d2 * sigma * math.sqrt(T)) / (2 * T * sigma * math.sqrt(T))
+        else:
+            raise ValueError("Invalid option type. Use 'call' or 'put'.")
+
+        if position_type == 'Long':
+            if update == True:
+                self.charm = round(charm / 365,4)
+            else:
+                return round(charm*100 / 365,4)
+        elif position_type == 'Short':
+            if update == True:
+                self.charm = round(-charm / 365 ,4)
+            else:
+                return round(-charm*100 / 365 ,4)
+        else:
+            raise ValueError("Invalid position type. Use 'long' or 'short'.")
+
+    def calculateColour(self, S, K, T, r, sigma, position_type, update:bool):
+        if T <= 0:
+            if update == True:
+                self.colour = 0
+            else:
+                return None
+
+        d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+        d2 = d1 - sigma * math.sqrt(T)
+        
+        gamma = norm.pdf(d1) / (S * sigma * math.sqrt(T))
+
+        colour = -gamma * (d1 / (2 * T) + (2 * r * T - d2 * sigma * math.sqrt(T)) / (2 * T * sigma * math.sqrt(T)))
+
+        if position_type == 'Long':
+            if update == True:
+                self.colour = round(colour / 365  ,4)
+            else:
+                return round(colour*100 / 365  ,4)
+        elif position_type == 'Short':
+            if update == True:
+                self.colour = round(-colour / 365  ,4)
+            else:
+                return round(-colour*100 / 365  ,4)
+        else:
+            raise ValueError("Invalid position type. Use 'long' or 'short'.")
+
+    def calculateVomma(self, S, K, T, r, sigma, position_type, update:bool):
+        if T <= 0:
+            if update == True:
+                self.vomma = 0
+            else:
+                return None
+            
+        d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+        d2 = d1 - sigma * math.sqrt(T)
+
+        vega = S * norm.pdf(d1) * math.sqrt(T)
+
+        vomma = vega * d1 * d2 / sigma
+
+        if position_type == 'Long':
+            if update == True:
+                self.vomma = round( vomma / 100 , 4) 
+            else:
+                return round( vomma  , 4) 
+        elif position_type == 'Short':
+            if update == True:
+                self.vomma = round( -vomma / 100 , 4)
+            else:
+                return round( -vomma , 4)
+        else:
+            raise ValueError("Invalid position type. Use 'long' or 'short'.")
+
+    def calculateZomma(self, S, K, T, r, sigma, position_type, update:bool):
+        if T <= 0:
+            if update == True:
+                self.zomma = 0
+            else:
+                return None
+            
+        d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+        d2 = d1 - sigma * math.sqrt(T)
+
+        gamma = norm.pdf(d1) / (S * sigma * math.sqrt(T))
+
+        zomma = gamma * ((d1 * d2 - 1) / sigma)
+
+        if position_type == 'Long':
+            if update == True:
+                self.zomma = round(zomma,4)
+            else:
+                return round(zomma*100,4)
+        elif position_type == 'Short':
+            if update == True:
+                self.zomma = round( -zomma,4)
+            else:
+                return round(-zomma*100,4)
+        else:
+            raise ValueError("Invalid position type. Use 'long' or 'short'.")
+
+    def updateDelta(self):
+        self.calculateDelta(self.applicationConfig.currentUnderlyingPrice, self.strikePrice[0], self.t, self.applicationConfig.interestRate/100, self.applicationConfig.underlyingVolatility/100, self.optionType[0], self.longShort[0], update=True)
+
+    def updateGamma(self):
+        self.calculateGamma(self.applicationConfig.currentUnderlyingPrice, self.strikePrice[0], self.t, self.applicationConfig.interestRate/100, self.applicationConfig.underlyingVolatility/100, self.longShort[0], update=True)
 
     def updateVega(self):
-        if self.t <= 0:
-            self.vega = 0
-            return
-        S = self.applicationConfig.currentUnderlyingPrice
-        K = self.strikePrice[0]
-        r = self.applicationConfig.interestRate/100
-        sigma = self.applicationConfig.underlyingVolatility/100
-        T = self.t
+        self.calculateVega(self.applicationConfig.currentUnderlyingPrice, self.strikePrice[0], self.t, self.applicationConfig.interestRate/100, self.applicationConfig.underlyingVolatility/100, self.longShort[0], update=True)
 
-        d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-        
-        pdf_d1 = norm.pdf(d1)
-        
-        vega = S * pdf_d1 * math.sqrt(T)
-        
-        if  'Short' in self.longShort:
-            vega = -vega
-        
-        self.vega = round(vega/100,4)
+    def updateTheta(self):
+        self.calculateTheta(self.applicationConfig.currentUnderlyingPrice, self.strikePrice[0], self.t, self.applicationConfig.interestRate/100, self.applicationConfig.underlyingVolatility/100, self.optionType[0], self.longShort[0], update=True)
 
     def updateRho(self):
+        self.calculateRho(self.applicationConfig.currentUnderlyingPrice, self.strikePrice[0], self.t, self.applicationConfig.interestRate/100, self.applicationConfig.underlyingVolatility/100, self.optionType[0], self.longShort[0], update=True)
+
+    def updateVanna(self):
+        self.calculateVanna(self.applicationConfig.currentUnderlyingPrice, self.strikePrice[0], self.t, self.applicationConfig.interestRate/100, self.applicationConfig.underlyingVolatility/100, self.longShort[0], update=True)
+
+    def updateCharm(self):
+        self.calculateCharm(self.applicationConfig.currentUnderlyingPrice, self.strikePrice[0], self.t, self.applicationConfig.interestRate/100, self.applicationConfig.underlyingVolatility/100, self.optionType[0], self.longShort[0], update=True)
+
+    def updateColour(self):
+        self.calculateColour(self.applicationConfig.currentUnderlyingPrice, self.strikePrice[0], self.t, self.applicationConfig.interestRate/100, self.applicationConfig.underlyingVolatility/100, self.longShort[0], update=True)
+
+    def updateVomma(self):
+        self.calculateVomma(self.applicationConfig.currentUnderlyingPrice, self.strikePrice[0], self.t, self.applicationConfig.interestRate/100, self.applicationConfig.underlyingVolatility/100, self.longShort[0], update=True)
+
+    def updateZomma(self):
+        self.calculateZomma(self.applicationConfig.currentUnderlyingPrice, self.strikePrice[0], self.t, self.applicationConfig.interestRate/100, self.applicationConfig.underlyingVolatility/100, self.longShort[0], update=True)
+
+    def calculateImpliedVolatility(self, tolerance=1e-6, max_iterations=100):
         if self.t <= 0:
-            self.rho = 0
+            self.impliedVolatility ='0%'
             return
         S = self.applicationConfig.currentUnderlyingPrice
         K = self.strikePrice[0]
         r = self.applicationConfig.interestRate/100
         sigma = self.applicationConfig.underlyingVolatility/100
         T = self.t
-        d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-        d2 = d1 - sigma * math.sqrt(T)
+        """
+        Calculate the implied volatility of a European option using the Newton-Raphson method.
+        """
+        # Initial guess
+        sigma = 0.2
+        
+        for i in range(max_iterations):
+            price = self.applicationConfig.black_scholes(S, K, T, r, sigma, self.optionType[0])
+            diff = price - abs(self.premium)
+            if abs(diff) < tolerance:
+                self.impliedVolatility = str(round(sigma*100,2)) + '%'
+                return
+            
+            vega_value = self.calculateVega(S, K, T, r, sigma, 'Long', update=False)
+            if vega_value == 0:
+                self.impliedVolatility ='0%'
+                return
+            
+            sigma -= diff / vega_value
 
-        cdf_d2 = norm.cdf(d2)
-        cdf_neg_d2 = norm.cdf(-d2)
-        
+        raise ValueError("Failed to converge to a solution within the maximum number of iterations.")
 
-        if 'Call' in self.optionType:
-            rho = K * T * math.exp(-r * T) * cdf_d2
-        elif 'Put' in self.optionType:
-            rho = -K * T * math.exp(-r * T) * cdf_neg_d2
-        else:
-            raise ValueError("Invalid option type. Use 'call' or 'put'.")
-        
-        if  'Short' in self.longShort:
-            rho = -rho
-        
-        self.rho = round(rho/100,4)
-    
     def to_dict(self):
         return {
             'exercise_price': self.strikePrice,
@@ -261,7 +447,7 @@ class ApplicationConfig:
         self.position2 = [PositionOption(self,'2024-04-01T00:00',100,'Put','Long',1,4),
                           PositionOption(self,'2024-04-01T00:00',90,'Put','Short',2,2)]
         self.p2Totals = []
-        # Position 3 Default - Long Call Christmas Tree 
+        # Position 3 Default - Long butterfly
         self.position3 = [PositionOption(self,'2024-04-01T00:00',90,'Call','Long',1,12),
                           PositionOption(self,'2024-04-01T00:00',100,'Call','Short',2,6),
                           PositionOption(self,'2024-04-01T00:00',110,'Call','Long',1,2)]
@@ -269,9 +455,9 @@ class ApplicationConfig:
         self.updatePositionValues()
         self.chart_data = {
             0: self.valuePriceGraph(),
-            1: self.deltaPriceGraph(),
-            2: self.gammaPriceGraph(),
-            3: self.vegaPriceGraph()
+            1: self.greekPriceGraph('Delta'),
+            2: self.greekPriceGraph('Gamma'),
+            3: self.greekPriceGraph('Vega')
         }
         self._chart1 = 'Profit/Loss'
         self._chart2 = 'Delta'
@@ -481,7 +667,6 @@ class ApplicationConfig:
         self.updatePositionTotals()
         self.socketio.emit('update_table', table_data)
 
-
     def updatePositionTotals(self):
         if len(self.position1) > 0:
             p1Elements = [[o.quantity[0]
@@ -535,50 +720,14 @@ class ApplicationConfig:
     def updateSpecificChart(self, index, value):
         if value == 'Profit/Loss':
             self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.valuePriceGraph()})
-        elif value == 'Delta':
-            self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.deltaPriceGraph()})
-        elif value == 'Gamma':
-            self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.gammaPriceGraph()})
-        elif value == 'Vega':
-            self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.vegaPriceGraph()})
-        elif value == 'Theta':
-            self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.thetaPriceGraph()})
-        elif value == 'Rho':
-            self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.rhoPriceGraph()})
-        elif value == 'Vanna':
-            self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.vannaPriceGraph()})
-        elif value == 'Charm':
-            self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.charmPriceGraph()})
-        elif value == 'Colour':
-            self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.colourPriceGraph()})
-        elif value == 'Vomma':
-            self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.vommaPriceGraph()})
-        elif value == 'Zomma':
-            self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.zommaPriceGraph()})
+        else:
+            self.socketio.emit('updateSpecificChart', {'index': index, 'data': self.greekPriceGraph(value)})  
     
     def refreshChart(self, chart):
         if chart == 'Profit/Loss':
             return self.valuePriceGraph()
-        elif chart == 'Delta':
-            return self.deltaPriceGraph()
-        elif chart == 'Gamma':
-            return self.gammaPriceGraph()
-        elif chart == 'Vega':
-            return self.vegaPriceGraph()
-        elif chart == 'Theta':
-            return self.thetaPriceGraph()
-        elif chart == 'Rho':
-            return self.rhoPriceGraph()
-        elif chart == 'Vanna':
-            return self.vannaPriceGraph()
-        elif chart == 'Charm':
-            return self.charmPriceGraph()
-        elif chart == 'Colour':
-            return self.colourPriceGraph()
-        elif chart == 'Vomma':
-            return self.vommaPriceGraph()
-        elif chart == 'Zomma':
-            return self.zommaPriceGraph()
+        else:
+            return self.greekPriceGraph(chart)
         
     def updateChartData(self):
         self.chart_data = {
@@ -603,133 +752,16 @@ class ApplicationConfig:
                 ]
             }
     
-    def deltaPriceGraph(self):
+    def greekPriceGraph(self, greek):
         return {
-                'title': 'Delta',
+                'title': greek,
                 'xAxisLabel': 'Underlying Price',
-                'yAxisLabel': 'Delta',
+                'yAxisLabel': greek,
                 'labels': self.generatePriceLabels(),
                 'datasets': [
-                    {'label': 'Position 1', 'data': self.checkNonZeroList([self.positionDeltaPrice('position1', x) for x in self.generatePriceLabels()] if len(self.position1) > 0 else [])},
-                    {'label': 'Position 2', 'data': self.checkNonZeroList([self.positionDeltaPrice('position2', x) for x in self.generatePriceLabels()] if len(self.position2) > 0 else [])},
-                    {'label': 'Position 3', 'data': self.checkNonZeroList([self.positionDeltaPrice('position3', x) for x in self.generatePriceLabels()] if len(self.position3) > 0 else [])}
-                ]
-            }
-    
-    def gammaPriceGraph(self):
-        return {
-                'title': 'Gamma',
-                'xAxisLabel': 'Underlying Price',
-                'yAxisLabel': 'Gamma',
-                'labels': self.generatePriceLabels(),
-                'datasets': [
-                    {'label': 'Position 1', 'data': self.checkNonZeroList([self.positionGammaPrice('position1', x) for x in self.generatePriceLabels()] if len(self.position1) > 0 else [])},
-                    {'label': 'Position 2', 'data': self.checkNonZeroList([self.positionGammaPrice('position2', x) for x in self.generatePriceLabels()] if len(self.position2) > 0 else [])},
-                    {'label': 'Position 3', 'data': self.checkNonZeroList([self.positionGammaPrice('position3', x) for x in self.generatePriceLabels()] if len(self.position3) > 0 else [])}
-                ]
-            }
-    
-    def vegaPriceGraph(self):
-        return {
-                'title': 'Vega',
-                'xAxisLabel': 'Underlying Price',
-                'yAxisLabel': 'Vega',
-                'labels': self.generatePriceLabels(),
-                'datasets': [
-                    {'label': 'Position 1', 'data': self.checkNonZeroList([self.positionVegaPrice('position1', x) for x in self.generatePriceLabels()] if len(self.position1) > 0 else [])},
-                    {'label': 'Position 2', 'data': self.checkNonZeroList([self.positionVegaPrice('position2', x) for x in self.generatePriceLabels()] if len(self.position2) > 0 else [])},
-                    {'label': 'Position 3', 'data': self.checkNonZeroList([self.positionVegaPrice('position3', x) for x in self.generatePriceLabels()] if len(self.position3) > 0 else [])}
-                ]
-            }
-    
-    def thetaPriceGraph(self):
-        return {
-                'title': 'Theta',
-                'xAxisLabel': 'Underlying Price',
-                'yAxisLabel': 'Theta',
-                'labels': self.generatePriceLabels(),
-                'datasets': [
-                    {'label': 'Position 1', 'data': self.checkNonZeroList([self.positionThetaPrice('position1', x) for x in self.generatePriceLabels()] if len(self.position1) > 0 else [])},
-                    {'label': 'Position 2', 'data': self.checkNonZeroList([self.positionThetaPrice('position2', x) for x in self.generatePriceLabels()] if len(self.position2) > 0 else [])},
-                    {'label': 'Position 3', 'data': self.checkNonZeroList([self.positionThetaPrice('position3', x) for x in self.generatePriceLabels()] if len(self.position3) > 0 else [])}
-                ]
-            }
-    
-    def rhoPriceGraph(self):
-        return {
-                'title': 'Rho',
-                'xAxisLabel': 'Underlying Price',
-                'yAxisLabel': 'Rho',
-                'labels': self.generatePriceLabels(),
-                'datasets': [
-                    {'label': 'Position 1', 'data': self.checkNonZeroList([self.positionRhoPrice('position1', x) for x in self.generatePriceLabels()] if len(self.position1) > 0 else [])},
-                    {'label': 'Position 2', 'data': self.checkNonZeroList([self.positionRhoPrice('position2', x) for x in self.generatePriceLabels()] if len(self.position2) > 0 else [])},
-                    {'label': 'Position 3', 'data': self.checkNonZeroList([self.positionRhoPrice('position3', x) for x in self.generatePriceLabels()] if len(self.position3) > 0 else [])}
-                ]
-            }
-    
-    def vannaPriceGraph(self):
-        return {
-                'title': 'Vanna',
-                'xAxisLabel': 'Underlying Price',
-                'yAxisLabel': 'Vanna',
-                'labels': self.generatePriceLabels(),
-                'datasets': [
-                    {'label': 'Position 1', 'data': self.checkNonZeroList([self.positionVannaPrice('position1', x) for x in self.generatePriceLabels()] if len(self.position1) > 0 else [])},
-                    {'label': 'Position 2', 'data': self.checkNonZeroList([self.positionVannaPrice('position2', x) for x in self.generatePriceLabels()] if len(self.position2) > 0 else [])},
-                    {'label': 'Position 3', 'data': self.checkNonZeroList([self.positionVannaPrice('position3', x) for x in self.generatePriceLabels()] if len(self.position3) > 0 else [])}
-                ]
-            }
-    
-    def charmPriceGraph(self):
-        return {
-                'title': 'Charm',
-                'xAxisLabel': 'Underlying Price',
-                'yAxisLabel': 'Charm',
-                'labels': self.generatePriceLabels(),
-                'datasets': [
-                    {'label': 'Position 1', 'data': self.checkNonZeroList([self.positionCharmPrice('position1', x) for x in self.generatePriceLabels()] if len(self.position1) > 0 else [])},
-                    {'label': 'Position 2', 'data': self.checkNonZeroList([self.positionCharmPrice('position2', x) for x in self.generatePriceLabels()] if len(self.position2) > 0 else [])},
-                    {'label': 'Position 3', 'data': self.checkNonZeroList([self.positionCharmPrice('position3', x) for x in self.generatePriceLabels()] if len(self.position3) > 0 else [])}
-                ]
-            }
-    
-    def colourPriceGraph(self):
-        return {
-                'title': 'Colour',
-                'xAxisLabel': 'Underlying Price',
-                'yAxisLabel': 'Colour',
-                'labels': self.generatePriceLabels(),
-                'datasets': [
-                    {'label': 'Position 1', 'data': self.checkNonZeroList([self.positionColourPrice('position1', x) for x in self.generatePriceLabels()] if len(self.position1) > 0 else [])},
-                    {'label': 'Position 2', 'data': self.checkNonZeroList([self.positionColourPrice('position2', x) for x in self.generatePriceLabels()] if len(self.position2) > 0 else [])},
-                    {'label': 'Position 3', 'data': self.checkNonZeroList([self.positionColourPrice('position3', x) for x in self.generatePriceLabels()] if len(self.position3) > 0 else [])}
-                ]
-            }
-    
-    def vommaPriceGraph(self):
-        return {
-                'title': 'Vomma',
-                'xAxisLabel': 'Underlying Price',
-                'yAxisLabel': 'Vomma',
-                'labels': self.generatePriceLabels(),
-                'datasets': [
-                    {'label': 'Position 1', 'data': self.checkNonZeroList([self.positionVommaPrice('position1', x) for x in self.generatePriceLabels()] if len(self.position1) > 0 else [])},
-                    {'label': 'Position 2', 'data': self.checkNonZeroList([self.positionVommaPrice('position2', x) for x in self.generatePriceLabels()] if len(self.position2) > 0 else [])},
-                    {'label': 'Position 3', 'data': self.checkNonZeroList([self.positionVommaPrice('position3', x) for x in self.generatePriceLabels()] if len(self.position3) > 0 else [])}
-                ]
-            }
-    
-    def zommaPriceGraph(self):
-        return {
-                'title': 'Zomma',
-                'xAxisLabel': 'Underlying Price',
-                'yAxisLabel': 'Zomma',
-                'labels': self.generatePriceLabels(),
-                'datasets': [
-                    {'label': 'Position 1', 'data': self.checkNonZeroList([self.positionZommaPrice('position1', x) for x in self.generatePriceLabels()] if len(self.position1) > 0 else [])},
-                    {'label': 'Position 2', 'data': self.checkNonZeroList([self.positionZommaPrice('position2', x) for x in self.generatePriceLabels()] if len(self.position2) > 0 else [])},
-                    {'label': 'Position 3', 'data': self.checkNonZeroList([self.positionZommaPrice('position3', x) for x in self.generatePriceLabels()] if len(self.position3) > 0 else [])}
+                    {'label': 'Position 1', 'data': self.checkNonZeroList([self.positionGreekPrice('position1', x, greek) for x in self.generatePriceLabels()] if len(self.position1) > 0 else [])},
+                    {'label': 'Position 2', 'data': self.checkNonZeroList([self.positionGreekPrice('position2', x, greek) for x in self.generatePriceLabels()] if len(self.position2) > 0 else [])},
+                    {'label': 'Position 3', 'data': self.checkNonZeroList([self.positionGreekPrice('position3', x, greek) for x in self.generatePriceLabels()] if len(self.position3) > 0 else [])}
                 ]
             }
 
@@ -767,8 +799,8 @@ class ApplicationConfig:
                 positionEdge += edge * o.quantity[0]
         return positionEdge
     
-    def positionDeltaPrice(self,position, price):
-        positionDelta = 0
+    def positionGreekPrice(self, position, price, greek):
+        positionTotal = 0
         if position == 'position1':
             pos = self.position1
         elif position == 'position2':
@@ -776,344 +808,59 @@ class ApplicationConfig:
         elif position == 'position3':
             pos = self.position3
         for o in pos:
-            delta = self.deltaPrice(o, price)
-            if delta is not None:
-                positionDelta += round(delta * o.quantity[0],4)
-        return positionDelta
-    
-    def positionGammaPrice(self,position, price):
-        positionGamma = 0
-        if position == 'position1':
-            pos = self.position1
-        elif position == 'position2':
-            pos = self.position2
-        elif position == 'position3':
-            pos = self.position3
-        for o in pos:
-            gamma = self.gammaPrice(o, price)
-            if gamma is not None:
-                positionGamma += round(gamma * o.quantity[0],4)
-        return positionGamma
-    
-    def positionVegaPrice(self,position, price):
-        positionVega = 0
-        if position == 'position1':
-            pos = self.position1
-        elif position == 'position2':
-            pos = self.position2
-        elif position == 'position3':
-            pos = self.position3
-        for o in pos:
-            vega = self.vegaPrice(o, price)
-            if vega is not None:
-                positionVega += round(vega * o.quantity[0],4)
-        return positionVega
-
-    def positionThetaPrice(self,position, price):
-        positionTheta = 0
-        if position == 'position1':
-            pos = self.position1
-        elif position == 'position2':
-            pos = self.position2
-        elif position == 'position3':
-            pos = self.position3
-        for o in pos:
-            theta = self.thetaPrice(o, price)
-            if theta is not None:
-                positionTheta += round(theta * o.quantity[0],4)
-        return positionTheta
-    
-    def positionRhoPrice(self,position, price):
-        positionRho = 0
-        if position == 'position1':
-            pos = self.position1
-        elif position == 'position2':
-            pos = self.position2
-        elif position == 'position3':
-            pos = self.position3
-        for o in pos:
-            rho = self.rhoPrice(o, price)
-            if rho is not None:
-                positionRho += round(rho * o.quantity[0],4)
-        return positionRho
-
-    def positionVannaPrice(self,position, price):
-        positionVanna = 0
-        if position == 'position1':
-            pos = self.position1
-        elif position == 'position2':
-            pos = self.position2
-        elif position == 'position3':
-            pos = self.position3
-        for o in pos:
-            vanna = self.vannaPrice(o, price)
-            if vanna is not None:
-                positionVanna += round(vanna * o.quantity[0],4)
-        return positionVanna
-    
-    def positionCharmPrice(self,position, price):
-        positionCharm = 0
-        if position == 'position1':
-            pos = self.position1
-        elif position == 'position2':
-            pos = self.position2
-        elif position == 'position3':
-            pos = self.position3
-        for o in pos:
-            charm = self.charmPrice(o, price)
-            if charm is not None:
-                positionCharm += round(charm * o.quantity[0],4)
-        return positionCharm
-    
-    def positionColourPrice(self,position, price):
-        positionColour = 0
-        if position == 'position1':
-            pos = self.position1
-        elif position == 'position2':
-            pos = self.position2
-        elif position == 'position3':
-            pos = self.position3
-        for o in pos:
-            colour = self.colourPrice(o, price)
-            if colour is not None:
-                positionColour += round(colour * o.quantity[0],4)
-        return positionColour
-    
-    def positionVommaPrice(self,position, price):
-        positionVomma = 0
-        if position == 'position1':
-            pos = self.position1
-        elif position == 'position2':
-            pos = self.position2
-        elif position == 'position3':
-            pos = self.position3
-        for o in pos:
-            vomma = self.vommaPrice(o, price)
-            if vomma is not None:
-                positionVomma += round(vomma * o.quantity[0],4)
-        return positionVomma
-    
-    def positionZommaPrice(self,position, price):
-        positionZomma = 0
-        if position == 'position1':
-            pos = self.position1
-        elif position == 'position2':
-            pos = self.position2
-        elif position == 'position3':
-            pos = self.position3
-        for o in pos:
-            zomma = self.zommaPrice(o, price)
-            if zomma is not None:
-                positionZomma += round(zomma * o.quantity[0],4)
-        return positionZomma
+            if greek == 'Delta':
+                value = self.deltaPrice(o, price)
+            elif greek == 'Gamma':
+                value =self.gammaPrice(o, price)
+            elif greek == 'Vega':
+                value = self.vegaPrice(o, price)
+            elif greek == 'Theta':
+                value = self.thetaPrice(o, price)
+            elif greek == 'Rho':
+                value = self.rhoPrice(o, price)
+            elif greek == 'Vanna':
+                value = self.vannaPrice(o, price)
+            elif greek == 'Charm':
+                value = self.charmPrice(o, price)
+            elif greek == 'Colour':
+                value = self.colourPrice(o, price)
+            elif greek == 'Vomma':
+                value = self.vommaPrice(o, price)
+            elif greek == 'Zomma':
+                value = self.zommaPrice(o, price)
+            if value is not None:
+                positionTotal += round(value* o.quantity[0],4)
+        return positionTotal
 
     def deltaPrice(self, o, price):
-        try:
-            d1 = (math.log(price /  o.strikePrice[0]) + ((self.interestRate/100) + 0.5 * (self.underlyingVolatility/100)**2) * o.t) / ((self.underlyingVolatility/100) * math.sqrt(o.t))
-        except:
-            return None
-        if 'Call' in o.optionType:
-            delta = norm.cdf(d1)
-        elif 'Put' in o.optionType:
-            delta = norm.cdf(d1) - 1
-        else:
-            raise ValueError("Invalid option type. Use 'call' or 'put'.")
-        
-        if  'Short' in o.longShort:
-            delta = -delta
-        elif  'Long' not in o.longShort:
-            raise ValueError("Invalid position type. Use 'long' or 'short'.")
-        return round(delta*100,4)
-    
-    def gammaPrice(self, o, price):
-        try:
-            d1 = (math.log(price /  o.strikePrice[0]) + ((self.interestRate/100) + 0.5 * (self.underlyingVolatility/100)**2) * o.t) / ((self.underlyingVolatility/100) * math.sqrt(o.t))
-        except:
-            return None
-        pdf_d1 = norm.pdf(d1)
-        
-        gamma = pdf_d1 / (self.currentUnderlyingPrice * (self.underlyingVolatility/100) * math.sqrt(o.t))
-        
-        if  'Short' in o.longShort:
-            gamma = -gamma
-        
+        return o.calculateDelta(price, o.strikePrice[0], o.t, self.interestRate/100, self.underlyingVolatility/100, o.optionType[0], o.longShort[0], update=False)
 
-        return round(gamma*100,4)
+    def gammaPrice(self, o, price):
+        return o.calculateGamma(price, o.strikePrice[0], o.t, self.interestRate/100, self.underlyingVolatility/100, o.longShort[0], update=False)
     
     def vegaPrice(self, o, price):
-        S = price
-        K = o.strikePrice[0]
-        r = self.interestRate/100
-        sigma = self.underlyingVolatility/100
-        T = o.t
-        try:
-            d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-        except:
-            return None
-        pdf_d1 = norm.pdf(d1)
-        
-
-        vega = S * pdf_d1 * math.sqrt(T)
-
-        if  'Short' in o.longShort:
-            vega = -vega
-        
-        return round(vega,4)
+        return o.calculateVega(price, o.strikePrice[0], o.t, self.interestRate/100, self.underlyingVolatility/100, o.longShort[0], update=False)
     
     def thetaPrice(self, o, price):
-        S = price
-        K = o.strikePrice[0]
-        r = self.interestRate/100
-        sigma = self.underlyingVolatility/100
-        T = o.t
-        try:
-            d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-        except:
-            return None
-        d2 = d1 - sigma * math.sqrt(T)
-        
-        if 'Call' in o.optionType:
-            theta = (-S * sigma * norm.pdf(d1) / (2 * math.sqrt(T)) -
-                    r * K * math.exp(-r * T) * norm.cdf(d2))
-        elif 'Put' in o.optionType:
-            theta = (-S * sigma * norm.pdf(d1) / (2 * math.sqrt(T)) +
-                    r * K * math.exp(-r * T) * norm.cdf(-d2))
-        else:
-            raise ValueError("Invalid option type. Use 'call' or 'put'.")
-
-        if  'Short' in o.longShort:
-            theta = -theta
-        
-        theta_per_day = theta / 365.0
-        return round(theta_per_day*100,4)
+        return o.calculateTheta(price, o.strikePrice[0], o.t, self.interestRate/100, self.underlyingVolatility/100, o.optionType[0], o.longShort[0], update=False)
     
     def rhoPrice(self, o, price):
-        S = price
-        K = o.strikePrice[0]
-        r = self.interestRate/100
-        sigma = self.underlyingVolatility/100
-        T = o.t
-        try:
-            d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-        except:
-            return None
-        d2 = d1 - sigma * math.sqrt(T)
-        
-        cdf_d2 = norm.cdf(d2)
-        cdf_neg_d2 = norm.cdf(-d2)
-        
-
-        if 'Call' in o.optionType:
-            rho = K * T * math.exp(-r * T) * cdf_d2
-        elif 'Put' in o.optionType:
-            rho = -K * T * math.exp(-r * T) * cdf_neg_d2
-        else:
-            raise ValueError("Invalid option type. Use 'call' or 'put'.")
-        
-        if  'Short' in o.longShort:
-            rho = -rho
-        
-        return round(rho,4)
+        return o.calculateRho(price, o.strikePrice[0], o.t, self.interestRate/100, self.underlyingVolatility/100, o.optionType[0], o.longShort[0], update=False)
     
     def vannaPrice(self, o, price):
-        S = price
-        K = o.strikePrice[0]
-        r = self.interestRate/100
-        sigma = self.underlyingVolatility/100
-        T = o.t
-        try:
-            d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-        except:
-            return None
-    
-        vanna = (S * norm.pdf(d1) * (1 - d1 / sigma)) / sigma
-        
-        if  'Short' in o.longShort:
-            vanna = -vanna
-        
-        return round(vanna,4)
+        return o.calculateVanna(price, o.strikePrice[0], o.t, self.interestRate/100, self.underlyingVolatility/100, o.longShort[0], update=False)
     
     def charmPrice(self, o, price):
-        S = price
-        K = o.strikePrice[0]
-        r = self.interestRate/100
-        sigma = self.underlyingVolatility/100
-        T = o.t
-        try:
-            d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-        except:
-            return None
-        d2 = d1 - sigma * math.sqrt(T)
-    
-        if 'Call' in o.optionType:
-            charm = (norm.pdf(d1) * ((r - 0.5 * sigma ** 2) / (sigma * math.sqrt(T)) - d2 / (2 * T))) - r * norm.cdf(d1)
-        elif 'Put' in o.optionType:
-            charm = (norm.pdf(d1) * ((r - 0.5 * sigma ** 2) / (sigma * math.sqrt(T)) - d2 / (2 * T))) + r * norm.cdf(-d1)
-        else:
-            raise ValueError("Invalid option type. Use 'call' or 'put'.")
-
-        if  'Short' in o.longShort:
-            charm = -charm
-
-        charm_per_day = charm / 365.0
-        return round(charm_per_day*100,4)
+        return o.calculateCharm(price, o.strikePrice[0], o.t, self.interestRate/100, self.underlyingVolatility/100, o.optionType[0], o.longShort[0], update=False)
     
     def colourPrice(self, o, price):
-        S = price
-        K = o.strikePrice[0]
-        r = self.interestRate/100
-        sigma = self.underlyingVolatility/100
-        T = o.t
-        try:
-            d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-        except:
-            return None
-        d2 = d1 - sigma * math.sqrt(T)
-        part1 = -norm.pdf(d1) / (2 * S * T * sigma * math.sqrt(T))
-        part2 = (2 * r * T - d2 * sigma * math.sqrt(T)) / (sigma * math.sqrt(T))
-        color = part1 * part2
-        
-        if  'Short' in o.longShort:
-            color = -color
-
-        color_per_day = color / 365.0
-        return round(color_per_day*100,4)
+        return o.calculateColour(price, o.strikePrice[0], o.t, self.interestRate/100, self.underlyingVolatility/100, o.longShort[0], update=False)
     
     def vommaPrice(self, o, price):
-        S = price
-        K = o.strikePrice[0]
-        r = self.interestRate/100
-        sigma = self.underlyingVolatility/100
-        T = o.t
-        try:
-            d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-        except:
-            return None
-        d2 = d1 - sigma * math.sqrt(T)
-        vomma = S * norm.pdf(d1) * math.sqrt(T) * d1 * d2 / sigma
-
-        if  'Short' in o.longShort:
-            vomma = -vomma
-        
-        return round(vomma,2)
+        return o.calculateVomma(price, o.strikePrice[0], o.t, self.interestRate/100, self.underlyingVolatility/100, o.longShort[0], update=False)
     
     def zommaPrice(self, o, price):
-        S = price
-        K = o.strikePrice[0]
-        r = self.interestRate/100
-        sigma = self.underlyingVolatility/100
-        T = o.t
-        try:
-            d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-        except:
-            return None
-        d2 = d1 - sigma * math.sqrt(T)
-        zomma = (norm.pdf(d1) * (d1 * d2 - 1)) / (S ** 2 * sigma ** 2 * T)
-
-        if  'Short' in o.longShort:
-            zomma = -zomma
-        
-        return round(zomma*100,4)
+        return o.calculateZomma(price, o.strikePrice[0], o.t, self.interestRate/100, self.underlyingVolatility/100, o.longShort[0], update=False)
         
     def checkNonZeroList(self, lst):
         if list(set(lst)) == [0]:
