@@ -18,8 +18,6 @@ class PositionOption:
         self.updateTheoreticalValue()
         self.totalPremium = self.premium * quantity
         self.updateIntrinsicValue()
-        self.delta = None
-        self.gamma = None
         self.updateDelta()
         self.updateGamma()
         self.updateTheta()
@@ -61,17 +59,16 @@ class PositionOption:
         
         if 'Long' in self.longShort:
             self.theoreticalValue = theoreticalValue
-            self.edge = round(self.theoreticalValue - abs(self.premium),2)
+            self.edge = round(self.theoreticalValue - abs(self.premium),10)
         elif 'Short' in self.longShort:
             self.theoreticalValue = -theoreticalValue
-            self.edge =  round(abs(self.premium) + self.theoreticalValue,2)
+            self.edge =  round(abs(self.premium) + self.theoreticalValue,10)
 
     def calculateDelta(self, S, K, T, r, sigma, option_type, position_type,update: bool):
         if T <= 0:
             if update == True:
                 self.delta = 0
             return None
-        
 
         d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
 
@@ -85,14 +82,14 @@ class PositionOption:
 
         if position_type == 'Long':
             if update == True:
-                self.delta = round(delta,4)
+                self.delta = round(delta,10)
             else:
-                return round(delta*100,4)
+                return round(delta*100,10)
         elif position_type == 'Short':
             if update == True:
-                self.delta = round(-delta,4)
+                self.delta = round(-delta,10)
             else:
-                return round(-delta*100,4)
+                return round(-delta*100,10)
         else:
             raise ValueError("Invalid position type. Use 'long' or 'short'.")
     
@@ -107,14 +104,14 @@ class PositionOption:
         
         if position_type == 'Long':
             if update == True:
-                self.gamma = round(gamma,4)
+                self.gamma = round(gamma,10)
             else:
-                return round(gamma*100,4)
+                return round(gamma*100,10)
         elif position_type == 'Short':
             if update == True:
-                self.gamma = round(-gamma,4)
+                self.gamma = round(-gamma,10)
             else:
-                return round(-gamma*100,4)
+                return round(-gamma*100,10)
         else:
             raise ValueError("Invalid position type. Use 'long' or 'short'.")
 
@@ -130,14 +127,14 @@ class PositionOption:
         
         if position_type == 'Long':
             if update == True:
-                self.vega = round(vega/100,4)
+                self.vega = round(vega/100,10)
             else:
-                return round(vega,4)
+                return round(vega,10)
         elif position_type == 'Short':
             if update == True:
-                self.vega = round(-vega/100,4)
+                self.vega = round(-vega/100,10)
             else:
-                return round(-vega,4)
+                return round(-vega,10)
         else:
             raise ValueError("Invalid position type. Use 'long' or 'short'.")
 
@@ -162,14 +159,14 @@ class PositionOption:
 
         if position_type == 'Long':
             if update == True:
-                self.theta = round(theta/365,4) 
+                self.theta = round(theta/365,10) 
             else:
-                return round(theta*100/365,4)
+                return round(theta*100/365,10)
         elif position_type == 'Short':
             if update == True:
-                self.theta = round(-theta / 365, 4)
+                self.theta = round(-theta / 365, 10)
             else:
-                return round(-theta*100/365,4)
+                return round(-theta*100/365,10)
         else:
             raise ValueError("Invalid position type. Use 'long' or 'short'.") 
 
@@ -191,14 +188,14 @@ class PositionOption:
         
         if position_type == 'Long':
             if update == True:
-                self.rho = round( rho / 100, 4)  
+                self.rho = round( rho / 100, 10)  
             else:
-                return round(rho, 4)
+                return round(rho, 10)
         elif position_type == 'Short':
             if update == True:
-                self.rho = round(-rho / 100, 4)
+                self.rho = round(-rho / 100, 10)
             else:
-                return round(-rho, 4)  
+                return round(-rho, 10)  
         else:
             raise ValueError("Invalid position type. Use 'long' or 'short'.")
 
@@ -214,14 +211,14 @@ class PositionOption:
 
         if position_type == 'Long':
             if update == True:
-                self.vanna = round(vanna,4)
+                self.vanna = round(vanna,10)
             else:
-                return round(vanna *100  ,4)
+                return round(vanna *100  ,10)
         elif position_type == 'Short':
             if update == True:
-                self.vanna = round(-vanna  ,4)
+                self.vanna = round(-vanna  ,10)
             else:
-                return round(-vanna*100,4)
+                return round(-vanna*100,10)
         else:
             raise ValueError("Invalid position type. Use 'long' or 'short'.")
 
@@ -236,22 +233,22 @@ class PositionOption:
         d2 = d1 - sigma * math.sqrt(T)
         
         if option_type == 'Call':
-            charm = -norm.pdf(d1) * (2 * r * T - d2 * sigma * math.sqrt(T)) / (2 * T * sigma * math.sqrt(T))
+            charm = -norm.pdf(d1) * sigma / (2 * np.sqrt(T)) - r * norm.cdf(d1)
         elif option_type == 'Put':
-            charm = -norm.pdf(d1) * (2 * r * T + d2 * sigma * math.sqrt(T)) / (2 * T * sigma * math.sqrt(T))
+            charm = -norm.pdf(d1) * sigma / (2 * np.sqrt(T)) + r * norm.cdf(-d1)
         else:
             raise ValueError("Invalid option type. Use 'call' or 'put'.")
 
         if position_type == 'Long':
             if update == True:
-                self.charm = round(charm / 365,4)
+                self.charm = round(charm / 365,10)
             else:
-                return round(charm*100 / 365,4)
+                return round(charm*100 / 365,10)
         elif position_type == 'Short':
             if update == True:
-                self.charm = round(-charm / 365 ,4)
+                self.charm = round(-charm / 365 ,10)
             else:
-                return round(-charm*100 / 365 ,4)
+                return round(-charm*100 / 365 ,10)
         else:
             raise ValueError("Invalid position type. Use 'long' or 'short'.")
 
@@ -271,14 +268,14 @@ class PositionOption:
 
         if position_type == 'Long':
             if update == True:
-                self.colour = round(colour / 365  ,4)
+                self.colour = round(colour / 365  ,10)
             else:
-                return round(colour*100 / 365  ,4)
+                return round(colour*100 / 365  ,10)
         elif position_type == 'Short':
             if update == True:
-                self.colour = round(-colour / 365  ,4)
+                self.colour = round(-colour / 365  ,10)
             else:
-                return round(-colour*100 / 365  ,4)
+                return round(-colour*100 / 365  ,10)
         else:
             raise ValueError("Invalid position type. Use 'long' or 'short'.")
 
@@ -298,14 +295,14 @@ class PositionOption:
 
         if position_type == 'Long':
             if update == True:
-                self.vomma = round( vomma / 100 , 4) 
+                self.vomma = round( vomma / 100 , 10) 
             else:
-                return round( vomma  , 4) 
+                return round( vomma  , 10) 
         elif position_type == 'Short':
             if update == True:
-                self.vomma = round( -vomma / 100 , 4)
+                self.vomma = round( -vomma / 100 , 10)
             else:
-                return round( -vomma , 4)
+                return round( -vomma , 10)
         else:
             raise ValueError("Invalid position type. Use 'long' or 'short'.")
 
@@ -325,14 +322,14 @@ class PositionOption:
 
         if position_type == 'Long':
             if update == True:
-                self.zomma = round(zomma,4)
+                self.zomma = round(zomma,10)
             else:
-                return round(zomma*100,4)
+                return round(zomma*100,10)
         elif position_type == 'Short':
             if update == True:
-                self.zomma = round( -zomma,4)
+                self.zomma = round( -zomma,10)
             else:
-                return round(-zomma*100,4)
+                return round(-zomma*100,10)
         else:
             raise ValueError("Invalid position type. Use 'long' or 'short'.")
 
@@ -408,7 +405,7 @@ class PositionOption:
             'quantity': self.quantity,
             'total_price': self.totalPremium,
             'theoreticalValue': round(float(self.theoreticalValue[0])*self.quantity[0],2) if isinstance(self.theoreticalValue, tuple) else round(float(self.theoreticalValue)*self.quantity[0],2) ,
-            'edge': round(self.edge*self.quantity[0], 4) if self.t > 0 else 0,
+            'edge': round(self.edge*self.quantity[0], 2) if self.t > 0 else 0,
             'delta': round(self.delta*self.quantity[0], 4),
             'gamma': round(self.gamma*self.quantity[0], 4),
             'theta': round(self.theta*self.quantity[0], 4),
